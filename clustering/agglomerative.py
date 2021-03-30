@@ -3,6 +3,34 @@ import numpy as np
 from sklearn import base, mixture
 
 
+def iterate(X, num_initial_clusters):
+    """
+    Iteratively perform agglomerative clustering.
+    The iterating continues until no model pairs meet the merging criteria.
+    The models and associated segmentation is returned.
+    
+    Keyword arguments:
+    X -- sequence of features
+    num_initial_clusters -- number of models to initialize
+    segmentation -- Labels for each item in sequence
+    """
+
+    models = init_models(X, num_initial_clusters, num_components=1)
+    for i in range(num_initial_clusters-1):
+        good_segmentation = False
+        while not good_segmentation:
+            states = decode_states(X, models)
+            pruned_models = prune(models, states)
+            if len(pruned_models) == len(models):
+                good_segmentation = True
+            else:
+                models = pruned_models
+        models = fit_models(X, models, states)
+        models, did_merge = merge(X, models, states)
+        if not did_merge:
+            break
+    return models, states
+
 def init_models(X, num_models, num_components=4, covariance_type='diag'):
     """
     Compute initial models.
@@ -195,3 +223,4 @@ def merge(X, models, segmentation):
         models.pop(best_pair[1])
 
     return models, did_merge
+
